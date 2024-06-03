@@ -1,0 +1,90 @@
+---
+title: "R Notebook"
+author: "gioge31"
+output: html_notebook
+---
+
+## Libraries
+
+```{r}
+library(limma)
+library(matrixStats)
+```
+
+## 1. "Κατεβάστε το dataset και φορτώστε το στην R"
+
+```{r}
+gds_6010 = readLines("GDS6010.soft")
+gds_6010_cleaned = gds_6010[!grepl("[!^#]",gds_6010)]
+writeLines(gds_6010_cleaned,"GDS6010.soft")
+
+samples = read.table("GDS6010.soft", sep = "\t", header=T, na.strings="null")
+
+samples = samples[ , 3:ncol(samples)]
+head(samples, n=100)
+```
+
+## 2. Χρησιμοποιήστε μόνο τα δείγματα που αντιστοιχούν στις 6 και στις 24 ώρες και χρησιμοποιήστε αυτές τις κατηγορίες ώς παράγοντα (factor) με 2 levels: 6 και 24. 
+
+```{r}
+exps = samples[ , c(1:6, 13:18)]
+
+time_points = c(rep(6,6), rep(24,6))
+time_factor = factor(time_points, levels=c(6,24))
+
+infection_status = factor(rep(rep(c("infection","control"), each=3),2))
+infection_factor = factor(infection_status, levels = c("infection", "control"))
+
+
+cat("Time factor: \n\n")
+print(time_factor)
+cat("\n\n\nInfection factor: \n\n")
+infection_factor
+```
+
+## 3. Βρείτε ποια γονίδια διαφοροποιούνται μεταξύ των 6 και 24 ωρών παίρνοντας υπόψιν και τον παράγοντα infection (γραμμικά μοντέλα με 2 παράγοντες με αλληλεπίδραση). 
+
+```{r}
+design = model.matrix(~ 0 + time_factor * infection_factor)
+colnames(design) = c("time_6", "time_24", "infection_control", "time_24Xinfection_control")
+design
+```
+
+```{r}
+fitA = lmFit(exps, design)
+fitA 
+```
+
+```{r}
+contrasts = makeContrasts(time24h_vs_time6h = time_24-time_6, levels=design)
+contrasts
+```
+
+```{r}
+fitB = contrasts.fit(fitA, contrasts)
+fitB = eBayes(fitB)
+fitB
+```
+
+```{r}
+top_table = topTable(fitB, adjust.method="fdr", number=Inf)
+#top_table
+cat("Significant genes: (adjusted)\n\n\n")
+significant_genes = top_table[top_table$adj.P.Val < 0.05 & abs(top_table$logFC) > 1, ]
+
+significant_genes
+```
+
+## 4. Θεωρείτε ότι η μόλυνση με H5N1 προκαλεί συστημική αντίδραση στον οργανισμό (δηλαδή επηρεάζονται πολλά γονίδια) ή επηρεάζονται μόνο λίγα γονίδια;
+
+```{r}
+
+```
+
+## 5. Χρησιμοποιήστε την lm συνάρτηση ώστε να δείτε σε ένα μοντέλο με αλληηλεπίδραση ποιοι παράγοντες ειναι σημαντικοί.
+
+```{r}
+#model = lm( ???? ~ time_factor * infection_factor, data=exps)
+#model
+#sumamry(model)
+```
