@@ -204,6 +204,7 @@ ggplot(top_table_clean, aes(x=logFC, y=-log10(adj.P.Val))) +
 #### 5. Χρησιμοποιήστε την lm συνάρτηση ώστε να δείτε σε ένα μοντέλο με αλληλεπίδραση ποιοι παράγοντες ειναι σημαντικοί.
 
 ```{r}
+
 gene_expression <- exps[, 1]
 
 exps_df <- data.frame(gene_expression, time_factor = rep(time_factor, each = nrow(exps)), infection_factor = rep(infection_factor, each = nrow(exps)))
@@ -211,4 +212,7 @@ exps_df <- data.frame(gene_expression, time_factor = rep(time_factor, each = nro
 
 model <- lm(gene_expression ~ time_factor * infection_factor, data = exps_df)
 summary(model)
+```
+
+```{r}
 ```
