@@ -204,58 +204,11 @@ ggplot(top_table_clean, aes(x=logFC, y=-log10(adj.P.Val))) +
 #### 5. Χρησιμοποιήστε την lm συνάρτηση ώστε να δείτε σε ένα μοντέλο με αλληλεπίδραση ποιοι παράγοντες ειναι σημαντικοί.
 
 ```{r}
-exps_df = as.data.frame(t(exps))
+gene_expression <- exps[, 1]
 
-exps_df$time_factor = time_factor
-exps_df$infection_factor = infection_factor
-```
+exps_df <- data.frame(gene_expression, time_factor = rep(time_factor, each = nrow(exps)), infection_factor = rep(infection_factor, each = nrow(exps)))
 
-```{r}
-significant_gens_list = list()
-
-for (gene in colnames(exps_t)[1:5]) {  # Only consider the first few genes for debugging
-  # Create a combined data frame for each gene
-  gene_expression <- exps_t[, gene]
-  exps_df <- data.frame(gene_expression, time_factor, infection_factor)
-  
-  # Fit the linear model
-  model <- lm(gene_expression ~ time_factor * infection_factor, data = exps_df)
-  summary_model <- summary(model)
-  
-  # Print summary of the model for the first few genes
-  cat("Summary for gene:", gene, "\n")
-  print(summary_model)
-  
-  # Extract significant factors
-  significant_factors <- summary_model$coefficients[summary_model$coefficients[, "Pr(>|t|)"] < 0.05, ]
-  
-  if (nrow(significant_factors) > 0) {
-    significant_genes_list[[gene]] <- significant_factors
-  }
-}
-
-# Print significant genes and their factors
-for (gene in names(significant_genes_list)) {
-  cat("Gene:", gene, "\n")
-  print(significant_genes_list[[gene]])
-}
-
-# Debug: Print the number of significant genes found
-cat("Number of significant genes found:", length(significant_genes_list), "\n")
-
-```
-
-```{r}
-model = lm(gene_expression ~ time_factor * infection_factor, data=exps)
-```
-
-```{r}
-
-gene_expression = exps[, "GSM1626004"]
-#gene_expression
-
-exps_df <- data.frame(gene_expression, time_factor, infection_factor)
 
 model <- lm(gene_expression ~ time_factor * infection_factor, data = exps_df)
-
+summary(model)
 ```
