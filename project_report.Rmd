@@ -21,6 +21,12 @@ output:
 
 ------------------------------------------------------------------------
 
+![](workshop-R-Rstudio-768x512.jpg){alt="r" width="799"}
+
+------------------------------------------------------------------------
+
+<br>
+
 # Project
 
 <br>
@@ -160,7 +166,7 @@ print(pr_List)
 
 ```{r}
 percentage = nrow(significant_genes) / nrow(exps) * 100
-cat("Percentage of affected genes: \n",percentage)
+cat("Percentage of affected genes: \n",percentage, "%\n")
 
 ```
 
@@ -204,19 +210,7 @@ ggplot(top_table_clean, aes(x=logFC, y=-log10(adj.P.Val))) +
 #### 5. Χρησιμοποιήστε την lm συνάρτηση ώστε να δείτε σε ένα μοντέλο με αλληλεπίδραση ποιοι παράγοντες ειναι σημαντικοί.
 
 ```{r}
-
-gene_expression <- exps[, 1]
-
-exps_df <- data.frame(gene_expression, time_factor = rep(time_factor, each = nrow(exps)), infection_factor = rep(infection_factor, each = nrow(exps)))
-
-
-model <- lm(gene_expression ~ time_factor * infection_factor, data = exps_df)
-summary(model)
-```
-
-```{r}
-
-#### SOLUTION 2 
+#### sOLUTION 2 
 
 
 gene_expression = as.vector(t(exps))
@@ -231,27 +225,13 @@ summary(model)
 
 ```
 
-```{r}
-#### SOLUTION 3 
-
-gene_expression = as.vector(t(exps))
-
-time_factor_l = rep(time_factor, nrow(exps))
-infection_factor_l = rep(infection_factor, nrow(exps))
-
-exps_df = data.frame(gene_expression, time_factor = time_factor_l, infection_factor = infection_factor_l)
-
-model = lm(gene_expression ~ time_factor * infection_factor, data = exps_df)
-summary(model)
-```
-
 ------------------------------------------------------------------------
 
 <br>
 
 #### 6. Βρείτε ποια γονίδια επηρεάζονται μεταξύ control και H5N1 παίρνοντας υπόψιν τις ώρες μετά τη μόλυνση (πάρτε όλα τα δείγματα και χρησιμοποιήστε τον χρόνο όχι σαν ποσοτική μεταβλητή αλλά σαν ποιοτική. πχ όπως το φύλο, αλλά με 3 επίπεδα).
-```{r}
 
+```{r}
 time_points_all = c(rep(6, 6), rep(12, 6), rep(24, 6))
 time_factor_all = factor(time_points_all, levels = c(6, 12, 24))
 
@@ -275,6 +255,115 @@ fit_contrasts_all = eBayes(fit_contrasts_all)
 
 significant_genes_all = topTable(fit_contrasts_all, adjust.method = "fdr", number = Inf)
 significant_genes_all = significant_genes_all[significant_genes_all$adj.P.Val < 0.05 & abs(significant_genes_all$logFC) > 1, ]
+significant_genes_all
+```
+
+------------------------------------------------------------------------
+
+<br>
+
+#### 7. Για τα 100 γονίδια με το μικρότερο p-value, κατεβάστε τους υποκινητές τους με την biomaRt και βρείτε αν υπάρχει κάποιο TFBS (transcription factor binding site) που υπεραντιπροσωπεύεται έναντι ενός τυχαίου συνόλου 1000 γονιδίων (γι αυτό πάαρτε 1000 τυχαία γονίδια από το micro array πείραμα και βρείτε τους υποκινητές τους).
+
+-   παίρνουμε τα πρώτα 100 γονίδια με τα μικρότερα p-value
+
+-   αποθηκεύουμε στο gene_ids τα ids τους
+
+-   για αυτα τα γονιδια μεσω της getSequence παίρνουμε τους υποκινητές τους (1000 βάσεις πριν την αρχή του γονιδίου)
+
+```{r}
+pr_List = NULL
+
+top_100_genes = head(significant_genes_all[order(significant_genes_all$P.Value), ], 100)
+
+gene_ids = rownames(top_100_genes)
+# gene_ids
+
+mart = useMart(dataset="hsapiens_gene_ensembl", host = "https://jan2024.archive.ensembl.org", biomart="ensembl")
+
+
+seqs = getSequence(id=gene_ids,
+                   type="entrezgene_id", 
+                   seqType="gene_flank",
+                   upstream=1000,
+                   mart=mart)
+# seqs
+
+pr_List[[1]] = "Top 100 genes names :"
+pr_List[[2]] = gene_ids
+pr_List[[3]] = "Promoters entrezgene_id :"
+pr_List[[4]] = seqs$entrezgene_id
+pr_List[[5]] = "Promoters gene flank :"
+pr_List[[6]] = seqs$gene_flank
+
+pr_List
+```
+
+-   1000 τυχαία γονίδια
+
+```{r}
 
 ```
 
+-   καταγραφή μοτίβων
+
+```{r}
+pr_List = NULL
+
+processArrayMotifsSub = function(sequences, k=6){
+  counterSeq = 0
+  allMotifs = list()
+
+  for(seq in sequences){
+    currentMotifs = getMotifsSeqSub(seq, k=k)
+
+    for(mot in names(currentMotifs)){
+      if(mot %in% names(allMotifs)){
+        allMotifs[[mot]] = allMotifs[[mot]] + currentMotifs[[mot]]
+      }else{
+        allMotifs[[mot]] = currentMotifs[[mot]]
+      }
+    }
+  }
+  
+  return(allMotifs)
+}
+
+
+getMotifsSeqSub = function(seq, k=6){
+  
+  myMotifs = list()
+  
+  for(i in 1:(nchar(seq)-k+1)){
+    
+    mot = substr(seq, i, i+k-1)
+    
+    if(mot %in% names(myMotifs)){
+      myMotifs[[mot]] = myMotifs[[mot]] + 1 
+    }else{
+      myMotifs[[mot]] = 1
+    }
+  }
+  
+  return (myMotifs)
+}
+
+mmotivs_count_100_genes = processArrayMotifsSub(seqs[,1], k=6)
+
+newdf = data.frame(mmotivs_count_100_genes)
+
+pr_List[[1]] = "Motivs found (first 20):"
+pr_List[[2]] = head(mmotivs_count_100_genes, n=20)
+pr_List[[3]] = "Overexpressed gene (Name and Position) :"
+pr_List[[4]] = which.max(mmotivs_count_100_genes)
+pr_List[[5]] = "Times found :"
+pr_List[[6]] = max(newdf)
+
+pr_List
+
+```
+
+-   εύρεση (αν υπάρχει) υπερέκφρασης
+
+```{r}
+
+```
