@@ -59,8 +59,10 @@ samples = read.table("GDS6010.soft", sep = "\t", header=T, na.strings="null")
 
 samples = samples[ , 3:ncol(samples)]
 
-pr_List[[1]] = "Samples"
-pr_List[[2]] = samples
+
+
+pr_List[[1]] = "Samples (10x7)"
+pr_List[[2]] = samples[1:10, 1:7]
 
 print(pr_List)
 ```
@@ -99,7 +101,6 @@ pr_List = NULL
 
 design = model.matrix(~ 0 + time_factor * infection_factor)
 colnames(design) = c("time_6", "time_24", "infection_control", "time_24Xinfection_control")
-# design
 
 pr_List[[1]] = "Design"
 pr_List[[2]] = design
@@ -111,7 +112,6 @@ print(pr_List)
 pr_List = NULL
 
 fitA = lmFit(exps, design)
-# fitA 
 
 pr_List[[1]] = "fit A"
 pr_List[[2]] = fitA
@@ -152,8 +152,8 @@ top_table = topTable(fitB, adjust.method="fdr", number=Inf)
 significant_genes = top_table[top_table$adj.P.Val < 0.05 & abs(top_table$logFC) > 1, ]
 # significant_genes
 
-pr_List[[1]] = "Adjustes Significant Genes"
-pr_List[[2]] = significant_genes
+pr_List[[1]] = 'Adjusted Significant Genes (first 20) :'
+pr_List[[2]] = head(significant_genes, n=20)
 
 print(pr_List)
 ```
@@ -191,18 +191,6 @@ pr_List
 
     -   Όλες οι τιμές είναι μικρότερες από 0.05 που τις καθορίζει σταστιστικά σημαντικές για την έκφραση των γονιδίων
 
--   **plot**
-
-```{r}
-top_table_clean = na.omit(top_table)
-
-ggplot(top_table_clean, aes(x=logFC, y=-log10(adj.P.Val))) +
-  geom_point(aes(color=adj.P.Val < 0.05 & abs(logFC) > 1)) +
-  scale_color_manual(values=c("grey", "red")) +
-  theme_minimal() +
-  labs(title="Table Plot", x="Log Fold Change", y="-Log10 Adjusted P-Value")
-```
-
 ------------------------------------------------------------------------
 
 <br>
@@ -211,6 +199,8 @@ ggplot(top_table_clean, aes(x=logFC, y=-log10(adj.P.Val))) +
 
 ```{r}
 #### sOLUTION 2 
+
+# lathos handling 
 
 
 gene_expression = as.vector(t(exps))
@@ -223,6 +213,21 @@ exps_df = data.frame(gene_expression, time_factor = time_factor_l, infection_fac
 model = lm(gene_expression ~ time_factor * infection_factor, data = exps_df)
 summary(model)
 
+```
+
+```{r}
+#### SOLUTION 3 
+gene_expression = as.vector(t(exps))
+
+time_factor_l = rep(time_factor, nrow(exps))
+
+infection_factor_l = rep(infection_factor, nrow(exps))
+
+exps_df = data.frame(gene_expression, time_factor = time_factor_l, infection_factor = infection_factor_l)
+
+model = lm(gene_expression ~ time_factor * infection_factor, data = exps_df)
+
+summary(model)
 ```
 
 ------------------------------------------------------------------------
@@ -255,7 +260,8 @@ fit_contrasts_all = eBayes(fit_contrasts_all)
 
 significant_genes_all = topTable(fit_contrasts_all, adjust.method = "fdr", number = Inf)
 significant_genes_all = significant_genes_all[significant_genes_all$adj.P.Val < 0.05 & abs(significant_genes_all$logFC) > 1, ]
-significant_genes_all
+
+head(significant_genes_all, n=30)
 ```
 
 ------------------------------------------------------------------------
@@ -263,6 +269,10 @@ significant_genes_all
 <br>
 
 #### 7. Για τα 100 γονίδια με το μικρότερο p-value, κατεβάστε τους υποκινητές τους με την biomaRt και βρείτε αν υπάρχει κάποιο TFBS (transcription factor binding site) που υπεραντιπροσωπεύεται έναντι ενός τυχαίου συνόλου 1000 γονιδίων (γι αυτό πάαρτε 1000 τυχαία γονίδια από το micro array πείραμα και βρείτε τους υποκινητές τους).
+
+```{r}
+mart = useMart(dataset="hsapiens_gene_ensembl", host = "https://jan2024.archive.ensembl.org", biomart="ensembl")
+```
 
 -   παίρνουμε τα πρώτα 100 γονίδια με τα μικρότερα p-value
 
@@ -274,11 +284,8 @@ significant_genes_all
 pr_List = NULL
 
 top_100_genes = head(significant_genes_all[order(significant_genes_all$P.Value), ], 100)
-
 gene_ids = rownames(top_100_genes)
 # gene_ids
-
-mart = useMart(dataset="hsapiens_gene_ensembl", host = "https://jan2024.archive.ensembl.org", biomart="ensembl")
 
 
 seqs = getSequence(id=gene_ids,
@@ -286,14 +293,13 @@ seqs = getSequence(id=gene_ids,
                    seqType="gene_flank",
                    upstream=1000,
                    mart=mart)
-# seqs
 
 pr_List[[1]] = "Top 100 genes names :"
 pr_List[[2]] = gene_ids
 pr_List[[3]] = "Promoters entrezgene_id :"
 pr_List[[4]] = seqs$entrezgene_id
-pr_List[[5]] = "Promoters gene flank :"
-pr_List[[6]] = seqs$gene_flank
+pr_List[[5]] = "Promoters gene flank (Just on for example ):"
+pr_List[[6]] = seqs$gene_flank[1]
 
 pr_List
 ```
@@ -301,14 +307,33 @@ pr_List
 -   1000 τυχαία γονίδια
 
 ```{r}
+pr_List = NULL
 
+set.seed(123) 
+random_genes_indices = sample(nrow(exps), 1000)
+random_genes_ids = rownames(exps_all)[random_genes_indices]
+
+
+seqs_random = getSequence(id=random_genes_ids,
+                   type="entrezgene_id", 
+                   seqType="gene_flank",
+                   upstream=1000,
+                   mart=mart)
+# seqs
+
+pr_List[[1]] = "Random Genes "
+pr_List[[2]] = random_genes_ids
+pr_List[[3]] = "Promoters entrezgene_id :"
+pr_List[[4]] = seqs_random$entrezgene_id
+pr_List[[5]] = "Promoters gene flank (just one for example) :"
+pr_List[[6]] = seqs_random$gene_flank[1]
+
+pr_List
 ```
 
 -   καταγραφή μοτίβων
 
 ```{r}
-pr_List = NULL
-
 processArrayMotifsSub = function(sequences, k=6){
   counterSeq = 0
   allMotifs = list()
@@ -347,23 +372,40 @@ getMotifsSeqSub = function(seq, k=6){
   return (myMotifs)
 }
 
-mmotivs_count_100_genes = processArrayMotifsSub(seqs[,1], k=6)
 
-newdf = data.frame(mmotivs_count_100_genes)
-
-pr_List[[1]] = "Motivs found (first 20):"
-pr_List[[2]] = head(mmotivs_count_100_genes, n=20)
-pr_List[[3]] = "Overexpressed gene (Name and Position) :"
-pr_List[[4]] = which.max(mmotivs_count_100_genes)
-pr_List[[5]] = "Times found :"
-pr_List[[6]] = max(newdf)
-
-pr_List
 
 ```
 
 -   εύρεση (αν υπάρχει) υπερέκφρασης
 
 ```{r}
+pr_List = NULL
+
+
+mmotivs_count_100_genes = processArrayMotifsSub(seqs[,1], k=6)
+mmotivs_count_random_genes = processArrayMotifsSub(seqs_random[,1], k=6)
+
+newdf = data.frame(mmotivs_count_100_genes)
+newdf2 = data.frame(mmotivs_count_random_genes)
+
+pr_List[[1]] = "Motivs found in 100 genes (first 10):"
+pr_List[[2]] = head(mmotivs_count_100_genes, n=10)
+pr_List[[3]] = "Overexpressed gene (Name and Position) :"
+pr_List[[4]] = which.max(mmotivs_count_100_genes)
+pr_List[[5]] = "Times found :"
+pr_List[[6]] = max(newdf)
+
+pr_List[[7]] = "Motivs found in 1000 random genes (first 20):"
+pr_List[[8]] = head(mmotivs_count_random_genes, n=10)
+pr_List[[9]] = "Overexpressed gene (Name and Position) :"
+pr_List[[10]] = which.max(mmotivs_count_random_genes)
+pr_List[[11]] = "Times found :"
+pr_List[[12]] = max(newdf2)
+pr_List[[13]] = "TTTTTT found in 100 genes"
+pr_List[[14]] = newdf$TTTTTT
+pr_List[[15]] = "TTTTTT found in random genes"
+pr_List[[16]] = newdf2$TTTTTT
+
+pr_List
 
 ```
