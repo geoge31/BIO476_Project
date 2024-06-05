@@ -215,4 +215,24 @@ summary(model)
 ```
 
 ```{r}
+
+#### sOLUTION 2 
+
+
+gene_expression = as.vector(t(exps))
+
+time_factor_l = rep(time_factor, each=nrow(exps))
+infection_factor_l = rep(infection_factor, each=nrow(exps))
+
+exps_df = data.frame(gene_expression, time_factor = time_factor_l, infection_factor = infection_factor_l)
+
+model = lm(gene_expression ~ time_factor * infection_factor, data = exps_df)
+summary(model)
+
 ```
+
+------------------------------------------------------------------------
+
+<br>
+
+#### 6. Βρείτε ποια γονίδια επηρεάζονται μεταξύ control και H5N1 παίρνοντας υπόψιν τις ώρες μετά τη μόλυνση (πάρτε όλα τα δείγματα και χρησιμοποιήστε τον χρόνο όχι σαν ποσοτική μεταβλητή αλλά σαν ποιοτική. πχ όπως το φύλο, αλλά με 3 επίπεδα).
