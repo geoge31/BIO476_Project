@@ -409,3 +409,21 @@ pr_List[[16]] = newdf2$TTTTTT
 pr_List
 
 ```
+
+```{r}
+# 1os Tropos
+
+k = newdf$TTTTTT
+totalfor = 100
+kback = newdf2$TTTTTT
+totalback = 1000
+pvalue = phyper(q=k-1, m=kback, n=totalback - kback, k = totalfor, lower.tail = FALSE)
+pvalue
+
+# 2os Tropos
+
+pvalue = pbinom(q = k, size = totalfor, prob = kback/totalback, lower.tail = FALSE)
+pvalue
+
+```
+
