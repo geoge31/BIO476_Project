@@ -250,3 +250,31 @@ summary(model)
 <br>
 
 #### 6. Βρείτε ποια γονίδια επηρεάζονται μεταξύ control και H5N1 παίρνοντας υπόψιν τις ώρες μετά τη μόλυνση (πάρτε όλα τα δείγματα και χρησιμοποιήστε τον χρόνο όχι σαν ποσοτική μεταβλητή αλλά σαν ποιοτική. πχ όπως το φύλο, αλλά με 3 επίπεδα).
+```{r}
+
+time_points_all = c(rep(6, 6), rep(12, 6), rep(24, 6))
+time_factor_all = factor(time_points_all, levels = c(6, 12, 24))
+
+infection_status_all = factor(rep(rep(c("infection", "control"), each=3), 3))
+infection_factor_all = factor(infection_status_all, levels = c("infection", "control"))
+
+exps_all = samples[, 1:18]
+gene_expression_all = as.vector(t(exps_all))
+
+design_all = model.matrix(~ 0 + infection_factor_all * time_factor_all )
+colnames(design_all) = c("infection", "control", "hour12", "hour24", "controlXhour12", "controlXhour24")
+
+fit_all = lmFit(exps_all, design_all)
+fit_all = eBayes(fit_all)
+
+
+contrasts_all = makeContrasts(infected_vs_control = infection-control, levels=design_all)
+
+fit_contrasts_all = contrasts.fit(fit_all, contrasts_all)
+fit_contrasts_all = eBayes(fit_contrasts_all)
+
+significant_genes_all = topTable(fit_contrasts_all, adjust.method = "fdr", number = Inf)
+significant_genes_all = significant_genes_all[significant_genes_all$adj.P.Val < 0.05 & abs(significant_genes_all$logFC) > 1, ]
+
+```
+
