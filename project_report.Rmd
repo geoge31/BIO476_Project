@@ -309,8 +309,8 @@ pr_List
 ```{r}
 pr_List = NULL
 
-set.seed(123) 
-random_genes_indices = sample(nrow(exps), 1000)
+# set.seed(123) 
+random_genes_indices = sample(nrow(exps_all), 1000)
 random_genes_ids = rownames(exps_all)[random_genes_indices]
 
 
