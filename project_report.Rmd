@@ -216,7 +216,7 @@ summary(model)
 
 ```{r}
 
-#### sOLUTION 2 
+#### SOLUTION 2 
 
 
 gene_expression = as.vector(t(exps))
@@ -229,6 +229,20 @@ exps_df = data.frame(gene_expression, time_factor = time_factor_l, infection_fac
 model = lm(gene_expression ~ time_factor * infection_factor, data = exps_df)
 summary(model)
 
+```
+
+```{r}
+#### SOLUTION 3 
+
+gene_expression = as.vector(t(exps))
+
+time_factor_l = rep(time_factor, nrow(exps))
+infection_factor_l = rep(infection_factor, nrow(exps))
+
+exps_df = data.frame(gene_expression, time_factor = time_factor_l, infection_factor = infection_factor_l)
+
+model = lm(gene_expression ~ time_factor * infection_factor, data = exps_df)
+summary(model)
 ```
 
 ------------------------------------------------------------------------
