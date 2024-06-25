@@ -229,6 +229,49 @@ model = lm(gene_expression ~ time_factor * infection_factor, data = exps_df)
 summary(model)
 ```
 
+```{r}
+time_fact = factor(c(rep(6,6), rep(24,6)))
+infection_fact = factor(rep(c(rep(1, 3), rep(0, 3)),2))
+
+infection_fact_binary = as.numeric(infection_fact) - 1
+
+length(time_fact)
+length(infection_fact)
+length(exps)
+
+
+lms = apply(exps, 1, function(e, time_fact, infection_fact){lm(e~time_fact*as.factor(infection_fact_binary), data = exps)}, time_fact, infection_fact_binary)
+
+ls = lapply(lms, summary)
+
+```
+
+```{r}
+# Define factors
+time_fact = factor(c(rep(6, 6), rep(24, 6)))
+infection_fact = factor(rep(c(rep(1, 3), rep(0, 3)), 2))
+
+# Check the levels and lengths
+print(levels(time_fact))  # Should be "6" "24"
+print(levels(infection_fact))  # Should be "0" "1"
+print(length(time_fact))  # Should be 12
+print(length(infection_fact))  # Should be 12
+
+# Check structure of exps
+print(dim(exps))  # Should have 12 columns if each row corresponds to an observation
+
+# Apply the linear model with debugging
+lms = apply(exps, 1, function(e, time_fact, infection_fact) {
+  time_fact = factor(time_fact, levels = c("6", "24"))  # Ensure factor levels are retained
+  infection_fact = factor(infection_fact, levels = c("0", "1"))  # Ensure factor levels are retained
+  print(lm(e ~ time_fact * infection_fact))
+  return(lm(e ~ time_fact * infection_fact))
+}, time_fact, infection_fact)
+
+# Summarize the linear models
+ls = lapply(lms, summary)
+```
+
 ------------------------------------------------------------------------
 
 <br>
